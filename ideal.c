@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 
-typedef enum {Atom, Null, Pair, Primitive, Procedure} Type;
+typedef enum {Atom, Pair, Primitive, Procedure} Type;
 
 
 typedef struct Object *Object;
@@ -20,24 +20,17 @@ struct Object {
 #define car(o) ((o)->car)
 #define cdr(o) ((o)->cdr)
 #define is_atom(o) ((o)->type == Atom)
-#define is_null(o) ((o)->type == Null)
+#define is_null(o) ((o) == NULL)
 #define is_pair(o) ((o)->type == Pair)
 #define is_list(o) (is_null(o) || is_pair(o))
 #define is_primitive(o) ((o)->type == Primitive)
 #define is_procedure(o) ((o)->type == Procedure)
 #define is_eq(o1, o2) (strcmp((o1)->atom, (o2)->atom) == 0)
 #define Object_new() malloc(sizeof(struct Object))
-#define null _null()
 
 Object atom(char *s) {
     Object o = Object_new();
     strcpy(o->atom, s);
-    return o;
-}
-
-Object _null(void) {
-    Object o = Object_new();
-    o->type = Null;
     return o;
 }
 
@@ -99,11 +92,11 @@ Object sub1_primitive(Object arguments) {
 void write(FILE *out, Object o);
 void write_pair(FILE *out, Object pair) {
     write(out, car(pair));
-    if (is_pair(cdr(pair))) {
+    if (is_null(cdr(pair))) {
+        return;
+    } else if (is_pair(cdr(pair))) {
         fputs(" ", out);
         write_pair(out, cdr(pair));
-    } else if (is_null(cdr(pair))) {
-        return;
     } else {
         fputs(" . ", out);
         write(out, cdr(pair));
@@ -132,11 +125,10 @@ void write(FILE *out, Object o) {
 int main(void) {
     printf("Welcome to Ideal Scheme.\n");
     write(stdout, cons(atom("#t"), cons(atom("a"), atom("b"))));
-    write(stdout, cons(atom("a"), cons(atom("b"), cons(atom("c"), null))));
-    write(stdout, null);
-    write(stdout, add1_primitive(cons(atom("100"), null)));
-    write(stdout, sub1_primitive(cons(atom("100"), null)));
-    write(stdout, is_eq_primitive(cons(atom("a"), cons(atom("b"), null))));
-    write(stdout, is_eq_primitive(cons(atom("a"), cons(atom("a"), null))));
-    write(stdout, is_eq_primitive(cons(null, cons(null, null))));
+    write(stdout, cons(atom("a"), cons(atom("b"), cons(atom("c"), NULL))));
+    write(stdout, NULL);
+    write(stdout, add1_primitive(cons(atom("100"), NULL)));
+    write(stdout, sub1_primitive(cons(atom("100"), NULL)));
+    write(stdout, is_eq_primitive(cons(atom("a"), cons(atom("b"), NULL))));
+    write(stdout, is_eq_primitive(cons(atom("a"), cons(atom("a"), NULL))));
 }
