@@ -8,10 +8,19 @@ typedef enum {Atom, Pair, Primitive, Procedure} Type;
 typedef struct Object *Object;
 struct Object {
     Type type;
+
+    // Union is appropriate for the items below,
+    // but skipped for simplicity.
+
     Object car;
     Object cdr;
+
     char atom[16];
+
     Object (*primitive)(Object arguments);
+
+    Object procedure;
+    Object environment;
 };
 
 #define car(o)          ((o)->car)
@@ -37,6 +46,14 @@ Object cons(Object car, Object cdr) {
     o->type = Pair;
     o->car = car;
     o->cdr = cdr;
+    return o;
+}
+
+Object procedure(Object lambda, Object env) {
+    Object o = Object_new();
+    o->type = Procedure;
+    o->procedure = lambda;
+    o->environment = env;
     return o;
 }
 
@@ -110,7 +127,8 @@ void write(FILE *out, Object o) {
     } else if (is_primitive(o)) {
         fputs("#<primitive>", out);
     } else if (is_procedure(o)) {
-        fputs("#<procedure>", out);
+        //fputs("#<procedure>", out);
+        write(out, o->procedure);
     } else {
         fputs("#<wtf?>", out);
     }
@@ -269,9 +287,6 @@ Object eval_operands(Object exp, Object env) {
 }
 
 Object eval(Object o, Object env) {
-    Object procedure;
-    Object arguments;
-    Object result;
 
 tailcall:
     if (is_self_evaluating(o)) {
@@ -291,8 +306,15 @@ tailcall:
         o = is_atom(cond) && is_eq(cond, atom("#f")) ? car(cdr(cdr(cdr(o)))) :
                     car(cdr(cdr(o)));
         goto tailcall;
+    } else if (is_tagged(o, atom("lambda"))) {
+        return procedure(o, env);
     } else if (is_pair(o)) {
-        return (eval(car(o), env)->primitive)(eval_operands(cdr(o), env));
+        Object proc = eval(car(o), env);
+        Object args = eval_operands(cdr(o), env);
+        if (is_primitive(proc)) {
+            return (eval(car(o), env)->primitive)(eval_operands(cdr(o), env));
+        } else {
+        }
     }
     fprintf(stderr, "eval illegal state\n");
 }
