@@ -238,12 +238,14 @@ char is_tagged(Object o, Object tag) {
 Object lookup(Object var, Object env) {
     while (!is_null(env)) {
         Object frame = car(env);
-        while (!is_null(frame)) {
-            Object binding = car(frame);
-                if (is_eq(car(binding), var)) {
-                    return cdr(binding);
-                }
-            frame = cdr(frame);
+        Object vars = car(frame);
+        Object vals = cdr(frame);
+        while (!is_null(vars)) {
+            if (is_eq(car(vars), var)) {
+                return car(vals);
+            }
+            vars = cdr(vars);
+            vals = cdr(vals);
         }
         env = cdr(env);
     }
@@ -255,22 +257,25 @@ Object define(Object var, Object val, Object env) {
     if (is_atom(l) && !is_eq(l, atom("#<undefined>"))) {
         fprintf(stderr, "can't redefine\n");
     }
-    Object binding = cons(var, val);
+    //Object binding = cons(var, val);
     Object frame = car(env);
-    set_car(env, cons(binding, frame));
+    set_car(frame, cons(var, car(frame)));
+    set_cdr(frame, cons(val, cdr(frame)));
     return atom("#<void>");
 }
 
 Object set(Object var, Object val, Object env) {
     while (!is_null(env)) {
         Object frame = car(env);
-        while (!is_null(frame)) {
-            Object binding = car(frame);
-                if (is_eq(car(binding), var)) {
-                    set_cdr(binding, val);
-                    return atom("#<void>");
-                }
-            frame = cdr(frame);
+        Object vars = car(frame);
+        Object vals = cdr(frame);
+        while (!is_null(vars)) {
+            if (is_eq(car(vars), var)) {
+                set_car(vals, val);
+                return atom("#<void>");
+            }
+            vars = cdr(vars);
+            vals = cdr(vals);
         }
         env = cdr(env);
     }
@@ -321,7 +326,7 @@ tailcall:
 
 Object make_environment(void) {
     //Object e = cons(cons(cons(atom("pi"), atom("3")), NULL), NULL);
-    Object e = cons(NULL, NULL);
+    Object e = cons(cons(NULL, NULL), NULL);
     define(atom("cons"),  primitive(cons_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
