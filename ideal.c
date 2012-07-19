@@ -81,6 +81,16 @@ Object cdr_primitive(Object arguments) {
     return cdr(car(arguments));
 }
 
+Object set_car_primitive(Object arguments) {
+    set_car(car(arguments), car(cdr(arguments)));
+    return atom("#<void>");
+}
+
+Object set_cdr_primitive(Object arguments) {
+    set_cdr(car(arguments), car(cdr(arguments)));
+    return atom("#<void>");
+}
+
 Object is_atom_primitive(Object arguments) {
     return is_atom(car(arguments)) ? atom("#t") : atom("#f");
 }
@@ -366,6 +376,8 @@ Object make_environment(void) {
     define(atom("cons"),  primitive(cons_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
+    define(atom("set-car!"),   primitive(set_car_primitive), e);
+    define(atom("set-cdr!"),   primitive(set_cdr_primitive), e);
     define(atom("atom?"), primitive(is_atom_primitive), e);
     define(atom("null?"), primitive(is_null_primitive), e);
     define(atom("eq?"),   primitive(is_eq_primitive), e);
