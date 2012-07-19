@@ -308,39 +308,42 @@ Object eval_operands(Object exp, Object env) {
     }
 }
 
-Object eval(Object o, Object env) {
+Object eval(Object exp, Object env) {
 
-tailcall:
-    if (is_self_evaluating(o)) {
-        return o;
-    } else if (is_atom(o) && is_eq(o, atom("environment"))) {
+    if (is_self_evaluating(exp)) {
+        return exp;
+    } else if (is_atom(exp) && is_eq(exp, atom("environment"))) {
         return env;
-    } else if (is_atom(o)) {
-        return lookup(o, env);
-//    } else if (is_tagged(o, atom("quote"))) {
-//        return car(cdr(o));
-    } else if (is_tagged(o, atom("define"))) {
-        return define(car(cdr(o)), eval(car(cdr(cdr(o))), env), env);
-    } else if (is_tagged(o, atom("set!"))) {
-        return set(car(cdr(o)), eval(car(cdr(cdr(o))), env), env);
-    } else if (is_tagged(o, atom("if"))) {
-        Object cond = eval(car(cdr(o)), env);
-        o = is_atom(cond) && is_eq(cond, atom("#f")) ? car(cdr(cdr(cdr(o)))) :
-                    car(cdr(cdr(o)));
-        goto tailcall;
-    } else if (is_tagged(o, atom("lambda")) || is_tagged(o, atom("macro"))) {
-        return procedure(o, env);
-    } else if (is_pair(o)) {
-        Object proc = eval(car(o), env);
+    } else if (is_atom(exp)) {
+        return lookup(exp, env);
+//    } else if (is_tagged(exp, atom("quote"))) {
+//        return car(cdr(exp));
+    } else if (is_tagged(exp, atom("define"))) {
+        return define(car(cdr(exp)), eval(car(cdr(cdr(exp))), env), env);
+    } else if (is_tagged(exp, atom("set!"))) {
+        return set(car(cdr(exp)), eval(car(cdr(cdr(exp))), env), env);
+    } else if (is_tagged(exp, atom("if"))) {
+        Object cond = eval(car(cdr(exp)), env);
+        if (is_atom(cond) && is_eq(cond, atom("#f"))) {
+           exp = car(cdr(cdr(cdr(exp))));
+        } else {
+           exp = car(cdr(cdr(exp)));
+        }
+        return eval(exp, env);
+    } else if (is_tagged(exp, atom("lambda"))
+            || is_tagged(exp, atom("macro"))) {
+        return procedure(exp, env);
+    } else if (is_pair(exp)) {
+        Object proc = eval(car(exp), env);
         Object para;
         Object args;
         Object body;
         if (is_primitive(proc)) {
-            args = eval_operands(cdr(o), env);
+            args = eval_operands(cdr(exp), env);
             return (proc->primitive)(args);
         } else if (is_eq(car(proc->procedure), atom("lambda"))) {
             para = car(cdr(proc->procedure));
-            args = eval_operands(cdr(o), env);
+            args = eval_operands(cdr(exp), env);
             body = car(cdr(cdr(proc->procedure)));
             if (is_atom(para)) {
                 para = cons(para, NULL);
@@ -348,7 +351,7 @@ tailcall:
             }
         } else if (is_eq(car(proc->procedure), atom("macro"))) {
             para = car(cdr(proc->procedure));
-            args = cdr(o);
+            args = cdr(exp);
             body = car(cdr(cdr(cdr(proc->procedure))));
             if (is_atom(para)) {
                 para = cons(para, NULL);
@@ -361,11 +364,10 @@ tailcall:
             exit(1);
         }
 
-
         env = extend_environment(para, args, proc->environment);
-        o = body;
+        exp = body;
         //exp = make_begin(procedure->data.compound_proc.body);
-        goto tailcall;
+        return eval(exp, env);
     }
     fprintf(stderr, "eval illegal state\n");
 }
