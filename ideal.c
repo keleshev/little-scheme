@@ -227,6 +227,10 @@ Object read(FILE *in) {
     }
 }
 
+Object extend_environment(Object vars, Object vals, Object base_env) {
+    return cons(cons(vars, vals), base_env);
+}
+
 char is_self_evaluating(Object o) {
     return is_atom(o) && (isdigit(o->atom[0]) || o->atom[0] == '#');
 }
@@ -249,12 +253,12 @@ Object lookup(Object var, Object env) {
         }
         env = cdr(env);
     }
-    return atom("#<undefined>");
+    return atom("#<unbound>");
 }
 
 Object define(Object var, Object val, Object env) {
     Object l = lookup(var, env);
-    if (is_atom(l) && !is_eq(l, atom("#<undefined>"))) {
+    if (is_atom(l) && !is_eq(l, atom("#<unbound>"))) {
         fprintf(stderr, "can't redefine\n");
     }
     //Object binding = cons(var, val);
@@ -319,6 +323,12 @@ tailcall:
         if (is_primitive(proc)) {
             return (eval(car(o), env)->primitive)(eval_operands(cdr(o), env));
         } else {
+            env = extend_environment(car(cdr(proc->procedure)),
+                                     args,
+                                     proc->environment);
+            o = car(cdr(cdr(proc->procedure)));
+            //exp = make_begin(procedure->data.compound_proc.body);
+            goto tailcall;
         }
     }
     fprintf(stderr, "eval illegal state\n");
@@ -326,7 +336,7 @@ tailcall:
 
 Object make_environment(void) {
     //Object e = cons(cons(cons(atom("pi"), atom("3")), NULL), NULL);
-    Object e = cons(cons(NULL, NULL), NULL);
+    Object e = extend_environment(NULL, NULL, NULL);
     define(atom("cons"),  primitive(cons_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
