@@ -307,8 +307,8 @@ tailcall:
         return env;
     } else if (is_atom(o)) {
         return lookup(o, env);
-    } else if (is_tagged(o, atom("quote"))) {
-        return car(cdr(o));
+//    } else if (is_tagged(o, atom("quote"))) {
+//        return car(cdr(o));
     } else if (is_tagged(o, atom("define"))) {
         return define(car(cdr(o)), eval(car(cdr(cdr(o))), env), env);
     } else if (is_tagged(o, atom("set!"))) {
@@ -322,23 +322,40 @@ tailcall:
         return procedure(o, env);
     } else if (is_pair(o)) {
         Object proc = eval(car(o), env);
+        Object para;
         Object args;
-        if (is_primitive(proc) || is_eq(car(proc->procedure), atom("lambda"))) {
+        Object body;
+        if (is_primitive(proc)) {
             args = eval_operands(cdr(o), env);
+            return (proc->primitive)(args);
+        } else if (is_eq(car(proc->procedure), atom("lambda"))) {
+            para = car(cdr(proc->procedure));
+            args = eval_operands(cdr(o), env);
+            body = car(cdr(cdr(proc->procedure)));
+            if (is_atom(para)) {
+                para = cons(para, NULL);
+                args = cons(args, NULL);
+            }
+        } else if (is_eq(car(proc->procedure), atom("macro"))) {
+            para = car(cdr(proc->procedure));
+            args = cdr(o);
+            body = car(cdr(cdr(cdr(proc->procedure))));
+            if (is_atom(para)) {
+                para = cons(para, NULL);
+                args = cons(args, NULL);
+            }
+            para = cons(car(cdr(cdr(proc->procedure))), para);
+            args = cons(env, args);
         } else {
-            args = cons(env, cdr(o));
+            fprintf(stderr, "what kinda form is that?\n");
+            exit(1);
         }
 
-        if (is_primitive(proc)) {
-            return (eval(car(o), env)->primitive)(eval_operands(cdr(o), env));
-        } else {
-            env = extend_environment(car(cdr(proc->procedure)),
-                                     args,
-                                     proc->environment);
-            o = car(cdr(cdr(proc->procedure)));
-            //exp = make_begin(procedure->data.compound_proc.body);
-            goto tailcall;
-        }
+
+        env = extend_environment(para, args, proc->environment);
+        o = body;
+        //exp = make_begin(procedure->data.compound_proc.body);
+        goto tailcall;
     }
     fprintf(stderr, "eval illegal state\n");
 }
