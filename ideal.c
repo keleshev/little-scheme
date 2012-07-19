@@ -64,6 +64,11 @@ Object primitive(Object (*p)(Object arguments)) {
     return o;
 }
 
+Object eval(Object o, Object env);
+Object eval_primitive(Object arguments) {
+    return eval(car(arguments), car(cdr(arguments)));
+}
+
 Object cons_primitive(Object arguments) {
     return cons(car(arguments), car(cdr(arguments)));
 }
@@ -210,8 +215,7 @@ Object read(FILE *in) {
     } else if (c == '\'') {
         return cons(atom("quote"), cons(read(in), NULL));
     } else if (c == EOF) {
-        fprintf(stderr, "^D");
-        exit(1);
+        return atom("#<void>");
     } else {
         a = atom("");
         i = 0;
@@ -286,7 +290,6 @@ Object set(Object var, Object val, Object env) {
     fprintf(stderr, "unbound variable\n");
 }
 
-Object eval(Object o, Object env);
 Object eval_operands(Object exp, Object env) {
     if (is_null(exp)) {
         return NULL;
@@ -315,11 +318,17 @@ tailcall:
         o = is_atom(cond) && is_eq(cond, atom("#f")) ? car(cdr(cdr(cdr(o)))) :
                     car(cdr(cdr(o)));
         goto tailcall;
-    } else if (is_tagged(o, atom("lambda"))) {
+    } else if (is_tagged(o, atom("lambda")) || is_tagged(o, atom("macro"))) {
         return procedure(o, env);
     } else if (is_pair(o)) {
         Object proc = eval(car(o), env);
-        Object args = eval_operands(cdr(o), env);
+        Object args;
+        if (is_primitive(proc) || is_eq(car(proc->procedure), atom("lambda"))) {
+            args = eval_operands(cdr(o), env);
+        } else {
+            args = cons(env, cdr(o));
+        }
+
         if (is_primitive(proc)) {
             return (eval(car(o), env)->primitive)(eval_operands(cdr(o), env));
         } else {
@@ -345,11 +354,20 @@ Object make_environment(void) {
     define(atom("eq?"),   primitive(is_eq_primitive), e);
     define(atom("add1"),  primitive(add1_primitive), e);
     define(atom("sub1"),  primitive(sub1_primitive), e);
+    define(atom("eval"),  primitive(eval_primitive), e);
     return e;
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
     Object environment = make_environment();
+
+    if (argc == 2) {
+        FILE* file = fopen(argv[1], "r");
+        while (peek(file) != EOF) {
+            write(stdout, eval(read(file), environment));
+        }
+    }
+
     while (1) {
         printf("> ");
         write(stdout, eval(read(stdin), environment));
