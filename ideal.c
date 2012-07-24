@@ -69,6 +69,10 @@ Object eval_primitive(Object arguments) {
     return eval(car(arguments), car(cdr(arguments)));
 }
 
+Object apply_primitive(Object arguments) {
+    return atom("#<apply-error>");
+}
+
 Object cons_primitive(Object arguments) {
     return cons(car(arguments), car(cdr(arguments)));
 }
@@ -115,7 +119,17 @@ Object sub1_primitive(Object arguments) {
     return n;
 }
 
+Object read(FILE *in);
+Object read_primitive(Object arguments) {
+    return read(stdin);
+}
+
 void write(FILE *out, Object o);
+Object write_primitive(Object arguments) {
+    write(stdout, car(arguments));
+    return car(arguments);
+}
+
 void write_pair(FILE *out, Object pair) {
     write(out, car(pair));
     if (is_null(cdr(pair))) {
@@ -150,7 +164,10 @@ void write(FILE *out, Object o) {
 }
 
 char is_delimiter(int c) {
-    return isspace(c) || c == EOF || c == '(' || c == ')' || c == ';';
+    return isspace(c) || c == EOF
+                      || c == '(' || c == ')'
+                      || c == '[' || c == ']'
+                      || c == ';';
 }
 
 void skip_space(FILE *in) {
@@ -176,7 +193,6 @@ int peek(FILE *in) {
     return c;
 }
 
-Object read(FILE *in);
 Object read_pair(FILE *in) {
     int c;
     Object car_obj;
@@ -184,7 +200,7 @@ Object read_pair(FILE *in) {
 
     skip_space(in);
     c = getc(in);
-    if (c == ')') {
+    if (c == ')' || c == ']') {
         return NULL;
     }
     ungetc(c, in);
@@ -200,7 +216,7 @@ Object read_pair(FILE *in) {
         cdr_obj = read(in);
         skip_space(in);
         c = getc(in);
-        if (c != ')') {
+        if (c != ')' && c != ']') {
             fprintf(stderr, "missing right paren\n");
             exit(1);
         }
@@ -222,6 +238,14 @@ Object read(FILE *in) {
     c = getc(in);
     if (c == '(') {
         return read_pair(in);
+    } else if (c == '\\') { // \(* _ 2) => (lambda (_) (* _ 2))
+        return cons(atom("lambda"),
+                    cons(cons(atom("_"), NULL),
+                         cons(read(in), NULL)));
+    } else if (c == '[') { // [* _ 2] => (lambda (_) (* _ 2))
+        return cons(atom("lambda"),
+                    cons(cons(atom("_"), NULL),
+                         cons(read_pair(in), NULL)));
     } else if (c == '\'') {
         return cons(atom("quote"), cons(read(in), NULL));
     } else if (c == EOF) {
@@ -338,10 +362,16 @@ Object eval(Object exp, Object env) {
         Object para;
         Object args;
         Object body;
-        if (is_primitive(proc)) {
+        if (is_primitive(proc) && proc->primitive == apply_primitive) {
+            args = eval_operands(cdr(exp), env);
+            proc = car(args);
+            args = cdr(args);
+            return (proc->primitive)(args);
+        } else if (is_primitive(proc)) {
             args = eval_operands(cdr(exp), env);
             return (proc->primitive)(args);
-        } else if (is_eq(car(proc->procedure), atom("lambda"))) {
+        } else if (is_procedure(proc)
+                && is_eq(car(proc->procedure), atom("lambda"))) {
             para = car(cdr(proc->procedure));
             args = eval_operands(cdr(exp), env);
             body = car(cdr(cdr(proc->procedure)));
@@ -349,7 +379,8 @@ Object eval(Object exp, Object env) {
                 para = cons(para, NULL);
                 args = cons(args, NULL);
             }
-        } else if (is_eq(car(proc->procedure), atom("macro"))) {
+        } else if (is_procedure(proc)
+                && is_eq(car(proc->procedure), atom("macro"))) {
             para = car(cdr(proc->procedure));
             args = cdr(exp);
             body = car(cdr(cdr(cdr(proc->procedure))));
@@ -360,8 +391,9 @@ Object eval(Object exp, Object env) {
             para = cons(car(cdr(cdr(proc->procedure))), para);
             args = cons(env, args);
         } else {
-            fprintf(stderr, "what kinda form is that?\n");
-            exit(1);
+            write(stderr, car(exp));
+            fprintf(stderr, ": what kinda form is that?\n");
+            return atom("#<void>");
         }
 
         env = extend_environment(para, args, proc->environment);
@@ -386,6 +418,9 @@ Object make_environment(void) {
     define(atom("add1"),  primitive(add1_primitive), e);
     define(atom("sub1"),  primitive(sub1_primitive), e);
     define(atom("eval"),  primitive(eval_primitive), e);
+    define(atom("apply"),  primitive(apply_primitive), e);
+    define(atom("read"),  primitive(read_primitive), e);
+    define(atom("write"),  primitive(write_primitive), e);
     return e;
 }
 
@@ -397,11 +432,17 @@ int main(int argc, char *argv[]) {
         while (peek(file) != EOF) {
             write(stdout, eval(read(file), environment));
         }
-    }
-
+    } // else {
+//        printf("Usage: %s <file.scm>", argv[0]);
+//        exit(2);
+//    }
+    Object exp;
     while (1) {
         printf("> ");
-        write(stdout, eval(read(stdin), environment));
+        //write(stdout, eval(read(stdin), environment));
+        exp = eval(read(stdin), environment);
+        printf("=> ");
+        write(stdout, exp);
         printf("\n");
     }
 }
