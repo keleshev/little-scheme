@@ -422,8 +422,8 @@ Object make_env(void) {
 int main(int argc, char *argv[]) {
     Object env = make_env();
 
-    if (argc == 2) {
-        FILE* file = fopen(argv[1], "r");
+    for (int i = 1; i < argc; i++) {
+        FILE* file = fopen(argv[i], "r");
         while (peek(file) != EOF) {
             write(stdout, eval(read(file), env));
         }
