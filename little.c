@@ -18,9 +18,6 @@ struct Object {
     char atom[16];
 
     Object (*primitive)(Object arguments);
-
-    Object procedure;
-    Object environment;
 };
 
 #define car(o)          ((o)->car)
@@ -52,8 +49,8 @@ Object cons(Object car, Object cdr) {
 Object procedure(Object lambda, Object env) {
     Object o = Object_new();
     o->type = Procedure;
-    o->procedure = lambda;
-    o->environment = env;
+    o->car = lambda;
+    o->cdr = env;
     return o;
 }
 
@@ -157,7 +154,7 @@ void write(FILE *out, Object o) {
         fputs("#<primitive>", out);
     } else if (is_procedure(o)) {
         //fputs("#<procedure>", out);
-        write(out, o->procedure);
+        write(out, o->car);
     } else {
         fputs("#<wtf?>", out);
     }
@@ -371,24 +368,24 @@ Object eval(Object exp, Object env) {
             args = eval_operands(cdr(exp), env);
             return (proc->primitive)(args);
         } else if (is_procedure(proc)
-                && is_eq(car(proc->procedure), atom("lambda"))) {
-            para = car(cdr(proc->procedure));
+                && is_eq(car(car(proc)), atom("lambda"))) {
+            para = car(cdr(car(proc)));
             args = eval_operands(cdr(exp), env);
-            body = car(cdr(cdr(proc->procedure)));
+            body = car(cdr(cdr(car(proc))));
             if (is_atom(para)) {
                 para = cons(para, NULL);
                 args = cons(args, NULL);
             }
         } else if (is_procedure(proc)
-                && is_eq(car(proc->procedure), atom("macro"))) {
-            para = car(cdr(proc->procedure));
+                && is_eq(car(car(proc)), atom("macro"))) {
+            para = car(cdr(car(proc)));
             args = cdr(exp);
-            body = car(cdr(cdr(cdr(proc->procedure))));
+            body = car(cdr(cdr(cdr(car(proc)))));
             if (is_atom(para)) {
                 para = cons(para, NULL);
                 args = cons(args, NULL);
             }
-            para = cons(car(cdr(cdr(proc->procedure))), para);
+            para = cons(car(cdr(cdr(car(proc)))), para);
             args = cons(env, args);
         } else {
             write(stderr, car(exp));
@@ -396,7 +393,7 @@ Object eval(Object exp, Object env) {
             return atom("#<void>");
         }
 
-        env = extend_environment(para, args, proc->environment);
+        env = extend_environment(para, args, cdr(proc));
         exp = body;
         //exp = make_begin(procedure->data.compound_proc.body);
         return eval(exp, env);
