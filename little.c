@@ -20,12 +20,14 @@ struct Object {
     Object (*primitive)(Object arguments);
 };
 
+Object null;
+
 #define car(o)          ((o)->car)
 #define cdr(o)          ((o)->cdr)
 #define set_car(o, val) ((o)->car = val)
 #define set_cdr(o, val) ((o)->cdr = val)
 #define is_atom(o)      ((o)->type == Atom)
-#define is_null(o)      ((o) == NULL)
+#define is_null(o)      ((o) == null)
 #define is_pair(o)      ((o)->type == Pair)
 #define is_primitive(o) ((o)->type == Primitive)
 #define is_procedure(o) ((o)->type == Procedure)
@@ -34,6 +36,7 @@ struct Object {
 
 Object atom(char *s) {
     Object o = Object_new();
+    o->type = Atom;
     strcpy(o->atom, s);
     return o;
 }
@@ -198,7 +201,7 @@ Object read_pair(FILE *in) {
     skip_space(in);
     c = getc(in);
     if (c == ')' || c == ']') {
-        return NULL;
+        return null;
     }
     ungetc(c, in);
     car_obj = read(in);
@@ -237,14 +240,14 @@ Object read(FILE *in) {
         return read_pair(in);
     } else if (c == '\\') { // \(* _ 2) => (lambda (_) (* _ 2))
         return cons(atom("lambda"),
-                    cons(cons(atom("_"), NULL),
-                         cons(read(in), NULL)));
+                    cons(cons(atom("_"), null),
+                         cons(read(in), null)));
     } else if (c == '[') { // [* _ 2] => (lambda (_) (* _ 2))
         return cons(atom("lambda"),
-                    cons(cons(atom("_"), NULL),
-                         cons(read_pair(in), NULL)));
+                    cons(cons(atom("_"), null),
+                         cons(read_pair(in), null)));
     } else if (c == '\'') {
-        return cons(atom("quote"), cons(read(in), NULL));
+        return cons(atom("quote"), cons(read(in), null));
     } else if (c == EOF) {
         return atom("#<void>");
     } else {
@@ -323,7 +326,7 @@ Object set(Object var, Object val, Object env) {
 
 Object eval_operands(Object exp, Object env) {
     if (is_null(exp)) {
-        return NULL;
+        return null;
     } else {
         return cons(eval(car(exp), env), eval_operands(cdr(exp), env));
     }
@@ -373,8 +376,8 @@ Object eval(Object exp, Object env) {
             args = eval_operands(cdr(exp), env);
             body = car(cdr(cdr(car(proc))));
             if (is_atom(para)) {
-                para = cons(para, NULL);
-                args = cons(args, NULL);
+                para = cons(para, null);
+                args = cons(args, null);
             }
         } else if (is_procedure(proc)
                 && is_eq(car(car(proc)), atom("macro"))) {
@@ -382,8 +385,8 @@ Object eval(Object exp, Object env) {
             args = cdr(exp);
             body = car(cdr(cdr(cdr(car(proc)))));
             if (is_atom(para)) {
-                para = cons(para, NULL);
-                args = cons(args, NULL);
+                para = cons(para, null);
+                args = cons(args, null);
             }
             para = cons(car(cdr(cdr(car(proc)))), para);
             args = cons(env, args);
@@ -402,8 +405,8 @@ Object eval(Object exp, Object env) {
 }
 
 Object make_environment(void) {
-    //Object e = cons(cons(cons(atom("pi"), atom("3")), NULL), NULL);
-    Object e = extend_environment(NULL, NULL, NULL);
+    //Object e = cons(cons(cons(atom("pi"), atom("3")), null), null);
+    Object e = extend_environment(null, null, null);
     define(atom("cons"),  primitive(cons_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
