@@ -41,19 +41,13 @@ Object atom(char *s) {
     return o;
 }
 
-Object cons(Object car, Object cdr) {
+#define cons(car, cdr)         make(Pair, car, cdr)
+#define procedure(lambda, env) make(Procedure, lambda, env)
+Object make(Type type, Object car, Object cdr) {
     Object o = Object_new();
-    o->type = Pair;
+    o->type = type;
     o->car = car;
     o->cdr = cdr;
-    return o;
-}
-
-Object procedure(Object lambda, Object env) {
-    Object o = Object_new();
-    o->type = Procedure;
-    o->car = lambda;
-    o->cdr = env;
     return o;
 }
 
@@ -328,7 +322,8 @@ Object eval_operands(Object exp, Object env) {
     if (is_null(exp)) {
         return null;
     } else {
-        return cons(eval(car(exp), env), eval_operands(cdr(exp), env));
+        Object e = eval(car(exp), env);
+        return cons(e, eval_operands(cdr(exp), env));
     }
 }
 
@@ -340,8 +335,6 @@ Object eval(Object exp, Object env) {
         return env;
     } else if (is_atom(exp)) {
         return lookup(exp, env);
-//    } else if (is_tagged(exp, atom("quote"))) {
-//        return car(cdr(exp));
     } else if (is_tagged(exp, atom("define"))) {
         return define(car(cdr(exp)), eval(car(cdr(cdr(exp))), env), env);
     } else if (is_tagged(exp, atom("set!"))) {
@@ -421,6 +414,8 @@ Object make_environment(void) {
     define(atom("apply"),  primitive(apply_primitive), e);
     define(atom("read"),  primitive(read_primitive), e);
     define(atom("write"),  primitive(write_primitive), e);
+    define(atom("newline"),  atom("\n"), e);
+    define(atom("space"),  atom(" "), e);
     return e;
 }
 
@@ -432,17 +427,5 @@ int main(int argc, char *argv[]) {
         while (peek(file) != EOF) {
             write(stdout, eval(read(file), environment));
         }
-    } // else {
-//        printf("Usage: %s <file.scm>", argv[0]);
-//        exit(2);
-//    }
-    Object exp;
-    while (1) {
-        printf("> ");
-        //write(stdout, eval(read(stdin), environment));
-        exp = eval(read(stdin), environment);
-        printf("=> ");
-        write(stdout, exp);
-        printf("\n");
     }
 }

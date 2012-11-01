@@ -114,15 +114,17 @@
           ((f? (car l)) #t)
           (else (any? f? (cdr l))))))
 
-;(define repl
-;  (lambda ()
-;    (display "> ")
-;    (write (eval (read) environment))
-;    (display "\n")
-;    (repl)))
+(define print (lambda args (begin (map write args) #<void>)))
 
-;(define repl
-;  (lambda ()
-;    (write '>)
-;    (write (eval (read) environment))
-;    (repl)))
+(define env environment)
+(define repl
+  (lambda a
+    (begin
+      (print 'little> space)
+      (let ((r (read)))
+           (let ((e (eval r env)))
+                (begin (print '=> space e))))
+      (print newline)
+      (repl))))
+
+(repl)
