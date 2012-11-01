@@ -259,7 +259,7 @@ Object read(FILE *in) {
     }
 }
 
-Object extend_environment(Object vars, Object vals, Object base_env) {
+Object extend_env(Object vars, Object vals, Object base_env) {
     return cons(cons(vars, vals), base_env);
 }
 
@@ -331,7 +331,7 @@ Object eval(Object exp, Object env) {
 
     if (is_self_evaluating(exp)) {
         return exp;
-    } else if (is_atom(exp) && is_eq(exp, atom("environment"))) {
+    } else if (is_atom(exp) && is_eq(exp, atom("__env__"))) {
         return env;
     } else if (is_atom(exp)) {
         return lookup(exp, env);
@@ -389,7 +389,7 @@ Object eval(Object exp, Object env) {
             return atom("#<void>");
         }
 
-        env = extend_environment(para, args, cdr(proc));
+        env = extend_env(para, args, cdr(proc));
         exp = body;
         //exp = make_begin(procedure->data.compound_proc.body);
         return eval(exp, env);
@@ -397,9 +397,9 @@ Object eval(Object exp, Object env) {
     fprintf(stderr, "eval illegal state\n");
 }
 
-Object make_environment(void) {
+Object make_env(void) {
     //Object e = cons(cons(cons(atom("pi"), atom("3")), null), null);
-    Object e = extend_environment(null, null, null);
+    Object e = extend_env(null, null, null);
     define(atom("cons"),  primitive(cons_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
@@ -420,12 +420,12 @@ Object make_environment(void) {
 }
 
 int main(int argc, char *argv[]) {
-    Object environment = make_environment();
+    Object env = make_env();
 
     if (argc == 2) {
         FILE* file = fopen(argv[1], "r");
         while (peek(file) != EOF) {
-            write(stdout, eval(read(file), environment));
+            write(stdout, eval(read(file), env));
         }
     }
 }

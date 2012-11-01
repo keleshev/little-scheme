@@ -116,7 +116,7 @@
 
 (define print (lambda args (begin (map write args) #<void>)))
 
-(define env environment)
+(define env __env__)
 (define repl
   (lambda a
     (begin
