@@ -5,22 +5,22 @@
 
 typedef enum {Atom, Pair, Primitive, Procedure} Type;
 
-typedef struct Object *Object;
-struct Object {
+typedef struct Cell *Cell;
+struct Cell {
     Type type;
 
     // Union is appropriate for the items below,
     // but skipped for simplicity.
 
-    Object car;
-    Object cdr;
+    Cell car;
+    Cell cdr;
 
     char atom[16];
 
-    Object (*primitive)(Object arguments);
+    Cell (*primitive)(Cell arguments);
 };
 
-Object null;
+Cell null;
 
 #define car(o)          ((o)->car)
 #define cdr(o)          ((o)->cdr)
@@ -32,10 +32,10 @@ Object null;
 #define is_primitive(o) ((o)->type == Primitive)
 #define is_procedure(o) ((o)->type == Procedure)
 #define is_eq(o1, o2)   (strcmp((o1)->atom, (o2)->atom) == 0)
-#define Object_new()    malloc(sizeof(struct Object))
+#define Cell_new()    malloc(sizeof(struct Cell))
 
-Object atom(char *s) {
-    Object o = Object_new();
+Cell atom(char *s) {
+    Cell o = Cell_new();
     o->type = Atom;
     strcpy(o->atom, s);
     return o;
@@ -43,84 +43,84 @@ Object atom(char *s) {
 
 #define cons(car, cdr)         make(Pair, car, cdr)
 #define procedure(lambda, env) make(Procedure, lambda, env)
-Object make(Type type, Object car, Object cdr) {
-    Object o = Object_new();
+Cell make(Type type, Cell car, Cell cdr) {
+    Cell o = Cell_new();
     o->type = type;
     o->car = car;
     o->cdr = cdr;
     return o;
 }
 
-Object primitive(Object (*p)(Object arguments)) {
-    Object o = Object_new();
+Cell primitive(Cell (*p)(Cell arguments)) {
+    Cell o = Cell_new();
     o->type = Primitive;
     o->primitive = p;
     return o;
 }
 
-Object eval(Object o, Object env);
-Object eval_primitive(Object arguments) {
+Cell eval(Cell o, Cell env);
+Cell eval_primitive(Cell arguments) {
     return eval(car(arguments), car(cdr(arguments)));
 }
 
-Object cons_primitive(Object arguments) {
+Cell cons_primitive(Cell arguments) {
     return cons(car(arguments), car(cdr(arguments)));
 }
 
-Object car_primitive(Object arguments) {
+Cell car_primitive(Cell arguments) {
     return car(car(arguments));
 }
 
-Object cdr_primitive(Object arguments) {
+Cell cdr_primitive(Cell arguments) {
     return cdr(car(arguments));
 }
 
-Object set_car_primitive(Object arguments) {
+Cell set_car_primitive(Cell arguments) {
     set_car(car(arguments), car(cdr(arguments)));
     return atom("#<void>");
 }
 
-Object set_cdr_primitive(Object arguments) {
+Cell set_cdr_primitive(Cell arguments) {
     set_cdr(car(arguments), car(cdr(arguments)));
     return atom("#<void>");
 }
 
-Object is_atom_primitive(Object arguments) {
+Cell is_atom_primitive(Cell arguments) {
     return is_atom(car(arguments)) ? atom("#t") : atom("#f");
 }
 
-Object is_null_primitive(Object arguments) {
+Cell is_null_primitive(Cell arguments) {
     return is_null(car(arguments)) ? atom("#t") : atom("#f");
 }
 
-Object is_eq_primitive(Object arguments) {
+Cell is_eq_primitive(Cell arguments) {
     return is_eq(car(arguments), car(cdr(arguments))) ? atom("#t") : atom("#f");
 }
 
-Object add1_primitive(Object arguments) {
-    Object n = atom("");
+Cell add1_primitive(Cell arguments) {
+    Cell n = atom("");
     sprintf(n->atom, "%i", (atoi(car(arguments)->atom) + 1));
     return n;
 }
 
-Object sub1_primitive(Object arguments) {
-    Object n = atom("");
+Cell sub1_primitive(Cell arguments) {
+    Cell n = atom("");
     sprintf(n->atom, "%i", (atoi(car(arguments)->atom) - 1));
     return n;
 }
 
-Object read(FILE *in);
-Object read_primitive(Object arguments) {
+Cell read(FILE *in);
+Cell read_primitive(Cell arguments) {
     return read(stdin);
 }
 
-void write(FILE *out, Object o);
-Object write_primitive(Object arguments) {
+void write(FILE *out, Cell o);
+Cell write_primitive(Cell arguments) {
     write(stdout, car(arguments));
     return car(arguments);
 }
 
-void write_pair(FILE *out, Object pair) {
+void write_pair(FILE *out, Cell pair) {
     write(out, car(pair));
     if (is_null(cdr(pair))) {
         return;
@@ -133,7 +133,7 @@ void write_pair(FILE *out, Object pair) {
     }
 }
 
-void write(FILE *out, Object o) {
+void write(FILE *out, Cell o) {
     if (is_null(o)) {
         fputs("()", out);
     } else if (is_atom(o) && is_eq(o, atom("#<void>"))) {
@@ -183,10 +183,10 @@ int peek(FILE *in) {
     return c;
 }
 
-Object read_pair(FILE *in) {
+Cell read_pair(FILE *in) {
     int c;
-    Object car_obj;
-    Object cdr_obj;
+    Cell car_obj;
+    Cell cdr_obj;
 
     skip_space(in);
     c = getc(in);
@@ -219,10 +219,10 @@ Object read_pair(FILE *in) {
     }
 }
 
-Object read(FILE *in) {
+Cell read(FILE *in) {
     int c;
     int i;
-    Object a;
+    Cell a;
 
     skip_space(in);
     c = getc(in);
@@ -255,23 +255,23 @@ Object read(FILE *in) {
     }
 }
 
-Object extend_env(Object vars, Object vals, Object base_env) {
+Cell extend_env(Cell vars, Cell vals, Cell base_env) {
     return cons(cons(vars, vals), base_env);
 }
 
-char is_self_evaluating(Object o) {
+char is_self_evaluating(Cell o) {
     return is_atom(o) && (isdigit(o->atom[0]) || o->atom[0] == '#');
 }
 
-char is_tagged(Object o, Object tag) {
+char is_tagged(Cell o, Cell tag) {
     return is_pair(o) && is_atom(car(o)) && is_eq(car(o), tag);
 }
 
-Object lookup(Object var, Object env) {
+Cell lookup(Cell var, Cell env) {
     while (!is_null(env)) {
-        Object frame = car(env);
-        Object vars = car(frame);
-        Object vals = cdr(frame);
+        Cell frame = car(env);
+        Cell vars = car(frame);
+        Cell vals = cdr(frame);
         while (!is_null(vars)) {
             if (is_eq(car(vars), var)) {
                 return car(vals);
@@ -284,23 +284,23 @@ Object lookup(Object var, Object env) {
     return atom("#<unbound>");
 }
 
-Object define(Object var, Object val, Object env) {
-    Object l = lookup(var, env);
+Cell define(Cell var, Cell val, Cell env) {
+    Cell l = lookup(var, env);
     if (is_atom(l) && !is_eq(l, atom("#<unbound>"))) {
         fprintf(stderr, "can't redefine\n");
     }
-    //Object binding = cons(var, val);
-    Object frame = car(env);
+    //Cell binding = cons(var, val);
+    Cell frame = car(env);
     set_car(frame, cons(var, car(frame)));
     set_cdr(frame, cons(val, cdr(frame)));
     return atom("#<void>");
 }
 
-Object set(Object var, Object val, Object env) {
+Cell set(Cell var, Cell val, Cell env) {
     while (!is_null(env)) {
-        Object frame = car(env);
-        Object vars = car(frame);
-        Object vals = cdr(frame);
+        Cell frame = car(env);
+        Cell vars = car(frame);
+        Cell vals = cdr(frame);
         while (!is_null(vars)) {
             if (is_eq(car(vars), var)) {
                 set_car(vals, val);
@@ -314,16 +314,16 @@ Object set(Object var, Object val, Object env) {
     fprintf(stderr, "unbound variable\n");
 }
 
-Object eval_operands(Object exp, Object env) {
+Cell eval_operands(Cell exp, Cell env) {
     if (is_null(exp)) {
         return null;
     } else {
-        Object e = eval(car(exp), env);
+        Cell e = eval(car(exp), env);
         return cons(e, eval_operands(cdr(exp), env));
     }
 }
 
-Object eval(Object exp, Object env) {
+Cell eval(Cell exp, Cell env) {
 
     if (is_self_evaluating(exp)) {
         return exp;
@@ -334,7 +334,7 @@ Object eval(Object exp, Object env) {
     } else if (is_tagged(exp, atom("set!"))) {
         return set(car(cdr(exp)), eval(car(cdr(cdr(exp))), env), env);
     } else if (is_tagged(exp, atom("if"))) {
-        Object cond = eval(car(cdr(exp)), env);
+        Cell cond = eval(car(cdr(exp)), env);
         if (is_atom(cond) && is_eq(cond, atom("#f"))) {
            exp = car(cdr(cdr(cdr(exp))));
         } else {
@@ -344,15 +344,15 @@ Object eval(Object exp, Object env) {
     } else if (is_tagged(exp, atom("macro"))) {
         return procedure(exp, env);
     } else if (is_pair(exp)) {
-        Object proc = eval(car(exp), env);
+        Cell proc = eval(car(exp), env);
         if (is_primitive(proc)) {
             return (proc->primitive)(eval_operands(cdr(exp), env));
         } else if (is_procedure(proc)) {
-            Object src = car(proc);
-            Object e = car(cdr(cdr(src)));
-            Object para = cons(e, cons(car(cdr(src)), null));
-            Object args = cons(env, cons(cdr(exp), null));
-            Object body = car(cdr(cdr(cdr(src))));
+            Cell src = car(proc);
+            Cell e = car(cdr(cdr(src)));
+            Cell para = cons(e, cons(car(cdr(src)), null));
+            Cell args = cons(env, cons(cdr(exp), null));
+            Cell body = car(cdr(cdr(cdr(src))));
             return eval(body, extend_env(para, args, cdr(proc)));
         }
     }
@@ -361,9 +361,9 @@ Object eval(Object exp, Object env) {
     return atom("#<void>");
 }
 
-Object make_env(void) {
-    //Object e = cons(cons(cons(atom("pi"), atom("3")), null), null);
-    Object e = extend_env(null, null, null);
+Cell make_env(void) {
+    //Cell e = cons(cons(cons(atom("pi"), atom("3")), null), null);
+    Cell e = extend_env(null, null, null);
     define(atom("cons"),  primitive(cons_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
@@ -383,7 +383,7 @@ Object make_env(void) {
 }
 
 int main(int argc, char *argv[]) {
-    Object env = make_env();
+    Cell env = make_env();
 
     for (int i = 1; i < argc; i++) {
         FILE* file = fopen(argv[i], "r");
