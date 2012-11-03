@@ -63,10 +63,6 @@ Object eval_primitive(Object arguments) {
     return eval(car(arguments), car(cdr(arguments)));
 }
 
-Object apply_primitive(Object arguments) {
-    return atom("#<apply-error>");
-}
-
 Object cons_primitive(Object arguments) {
     return cons(car(arguments), car(cdr(arguments)));
 }
@@ -352,12 +348,7 @@ Object eval(Object exp, Object env) {
         Object para;
         Object args;
         Object body;
-        if (is_primitive(proc) && proc->primitive == apply_primitive) {
-            args = eval_operands(cdr(exp), env);
-            proc = car(args);
-            args = cdr(args);
-            return (proc->primitive)(args);
-        } else if (is_primitive(proc)) {
+        if (is_primitive(proc)) {
             args = eval_operands(cdr(exp), env);
             return (proc->primitive)(args);
         } else if (is_procedure(proc)) { // macro
@@ -398,7 +389,6 @@ Object make_env(void) {
     define(atom("add1"),  primitive(add1_primitive), e);
     define(atom("sub1"),  primitive(sub1_primitive), e);
     define(atom("eval"),  primitive(eval_primitive), e);
-    define(atom("apply"),  primitive(apply_primitive), e);
     define(atom("read"),  primitive(read_primitive), e);
     define(atom("write"),  primitive(write_primitive), e);
     define(atom("newline"),  atom("\n"), e);

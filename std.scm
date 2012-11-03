@@ -19,6 +19,10 @@
              (cons (eval (car (eval l e)) (eval env e))
                    (evop (cdr (eval l e)) (eval env e))))))
 
+(define apply
+  (macro (f a) e
+         (eval (cons f (evop (eval a e) e)) e)))
+
 (define first car)
 (define caar (lambda (x) (car (car x))))
 (define cadr (lambda (x) (car (cdr x))))
