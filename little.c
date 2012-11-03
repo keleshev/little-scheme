@@ -228,14 +228,6 @@ Cell read(FILE *in) {
     c = getc(in);
     if (c == '(') {
         return read_pair(in);
-    } else if (c == '\\') { // \(* _ 2) => (lambda (_) (* _ 2))
-        return cons(atom("lambda"),
-                    cons(cons(atom("_"), null),
-                         cons(read(in), null)));
-    } else if (c == '[') { // [* _ 2] => (lambda (_) (* _ 2))
-        return cons(atom("lambda"),
-                    cons(cons(atom("_"), null),
-                         cons(read_pair(in), null)));
     } else if (c == '\'') {
         return cons(atom("quote"), cons(read(in), null));
     } else if (c == EOF) {
