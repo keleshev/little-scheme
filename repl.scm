@@ -1,4 +1,4 @@
-(define env __env__)
+(define env (environment))
 
 (define repl
   (lambda a

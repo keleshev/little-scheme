@@ -331,8 +331,6 @@ Object eval(Object exp, Object env) {
 
     if (is_self_evaluating(exp)) {
         return exp;
-    } else if (is_atom(exp) && is_eq(exp, atom("__env__"))) {
-        return env;
     } else if (is_atom(exp)) {
         return lookup(exp, env);
     } else if (is_tagged(exp, atom("define"))) {
@@ -347,8 +345,7 @@ Object eval(Object exp, Object env) {
            exp = car(cdr(cdr(exp)));
         }
         return eval(exp, env);
-    } else if (is_tagged(exp, atom("lambda"))
-            || is_tagged(exp, atom("macro"))) {
+    } else if (is_tagged(exp, atom("macro"))) {
         return procedure(exp, env);
     } else if (is_pair(exp)) {
         Object proc = eval(car(exp), env);
@@ -363,17 +360,7 @@ Object eval(Object exp, Object env) {
         } else if (is_primitive(proc)) {
             args = eval_operands(cdr(exp), env);
             return (proc->primitive)(args);
-        } else if (is_procedure(proc)
-                && is_eq(car(car(proc)), atom("lambda"))) {
-            para = car(cdr(car(proc)));
-            args = eval_operands(cdr(exp), env);
-            body = car(cdr(cdr(car(proc))));
-            if (is_atom(para)) {
-                para = cons(para, null);
-                args = cons(args, null);
-            }
-        } else if (is_procedure(proc)
-                && is_eq(car(car(proc)), atom("macro"))) {
+        } else if (is_procedure(proc)) { // macro
             para = car(cdr(car(proc)));
             args = cdr(exp);
             body = car(cdr(cdr(cdr(car(proc)))));

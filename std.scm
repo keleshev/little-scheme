@@ -1,3 +1,24 @@
+(define quote
+  (macro (a) e a))
+
+(define environment
+  (macro a e e))
+
+(define lambda
+  (macro (para body) e
+         (macro args e2
+                (eval body
+                      (cons (if (atom? para)
+                                (cons (cons para '()) (cons (evop args e2) '()))
+                                (cons para (evop args e2)))
+                            e2)))))
+
+(define evop
+  (macro (l env) e
+         (if (null? (eval l e)) '()
+             (cons (eval (car (eval l e)) (eval env e))
+                   (evop (cdr (eval l e)) (eval env e))))))
+
 (define first car)
 (define caar (lambda (x) (car (car x))))
 (define cadr (lambda (x) (car (cdr x))))
@@ -38,9 +59,6 @@
 
 (define begin
   (lambda l (last l)))
-
-(define quote
-  (macro (a) e a))
 
 (define list
   (lambda l l))
