@@ -345,34 +345,20 @@ Object eval(Object exp, Object env) {
         return procedure(exp, env);
     } else if (is_pair(exp)) {
         Object proc = eval(car(exp), env);
-        Object para;
-        Object args;
-        Object body;
         if (is_primitive(proc)) {
-            args = eval_operands(cdr(exp), env);
-            return (proc->primitive)(args);
-        } else if (is_procedure(proc)) { // macro
-            para = car(cdr(car(proc)));
-            args = cdr(exp);
-            body = car(cdr(cdr(cdr(car(proc)))));
-            if (is_atom(para)) {
-                para = cons(para, null);
-                args = cons(args, null);
-            }
-            para = cons(car(cdr(cdr(car(proc)))), para);
-            args = cons(env, args);
-        } else {
-            write(stderr, car(exp));
-            fprintf(stderr, ": what kinda form is that?\n");
-            return atom("#<void>");
+            return (proc->primitive)(eval_operands(cdr(exp), env));
+        } else if (is_procedure(proc)) {
+            Object src = car(proc);
+            Object e = car(cdr(cdr(src)));
+            Object para = cons(e, cons(car(cdr(src)), null));
+            Object args = cons(env, cons(cdr(exp), null));
+            Object body = car(cdr(cdr(cdr(src))));
+            return eval(body, extend_env(para, args, cdr(proc)));
         }
-
-        env = extend_env(para, args, cdr(proc));
-        exp = body;
-        //exp = make_begin(procedure->data.compound_proc.body);
-        return eval(exp, env);
     }
-    fprintf(stderr, "eval illegal state\n");
+    write(stderr, exp);
+    fprintf(stderr, ": eval illegal state\n");
+    return atom("#<void>");
 }
 
 Object make_env(void) {

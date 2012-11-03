@@ -1,27 +1,30 @@
 (define quote
-  (macro (a) e a))
+  (macro a e (car a)))
 
 (define environment
   (macro a e e))
 
 (define lambda
-  (macro (para body) e
+  (macro para_body e
          (macro args e2
-                (eval body
-                      (cons (if (atom? para)
-                                (cons (cons para '()) (cons (evop args e2) '()))
-                                (cons para (evop args e2)))
+                (eval (car (cdr para_body))
+                      (cons (if (atom? (car para_body))
+                                (cons (cons (car para_body) '())
+                                      (cons (evop args e2) '()))
+                                (cons (car para_body) (evop args e2)))
                             e2)))))
 
 (define evop
-  (macro (l env) e
-         (if (null? (eval l e)) '()
-             (cons (eval (car (eval l e)) (eval env e))
-                   (evop (cdr (eval l e)) (eval env e))))))
+  (macro l_env e
+         (if (null? (eval (car l_env) e)) '()
+             (cons (eval (car (eval (car l_env) e))
+                         (eval (car (cdr l_env)) e))
+                   (evop (cdr (eval (car l_env) e))
+                         (eval (car (cdr l_env)) e))))))
 
 (define apply
-  (macro (f a) e
-         (eval (cons f (evop (eval a e) e)) e)))
+  (macro f_a e
+         (eval (cons (car f_a) (evop (eval (car (cdr f_a)) e) e)) e)))
 
 (define first car)
 (define caar (lambda (x) (car (car x))))
@@ -84,14 +87,14 @@
   (lambda (b) (if b #f #t)))
 
 (define or
-  (macro (a b) e
-         (let ((a (eval a e)))
-              (if a a (eval b e)))))
+  (macro a_b e
+         (let ((a (eval (car a_b) e)))
+              (if a a (eval (cadr a_b) e)))))
 
 (define and
-  (macro (a b) e
-         (let ((a (eval a e)))
-              (if (not a) #f (eval b e)))))
+  (macro a_b e
+         (let ((a (eval (car a_b) e)))
+              (if (not a) #f (eval (cadr a_b) e)))))
 
 (define else #t)
 
@@ -121,6 +124,7 @@
 
 (test (cond (#f 'no) (#f 'no) (else 'yes)) => 'yes)
 (test (let ((a 1) (b 2) (c 3)) (list a b c)) => '(1 2 3))
+(test (map add1 '(1 2 3)) => '(2 3 4))
 
 (define filter
   (lambda (f? l)
