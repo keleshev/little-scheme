@@ -1,30 +1,30 @@
 (define quote
-  (macro a e (car a)))
+  (vau a e (car a)))
 
 (define environment
-  (macro a e e))
+  (vau a e e))
 
 (define lambda
-  (macro para_body e
-         (macro args e2
-                (eval (car (cdr para_body))
-                      (cons (if (atom? (car para_body))
-                                (cons (cons (car para_body) '())
-                                      (cons (evop args e2) '()))
-                                (cons (car para_body) (evop args e2)))
-                            e2)))))
+  (vau para_body e
+       (vau args e2
+              (eval (car (cdr para_body))
+                    (cons (if (atom? (car para_body))
+                              (cons (cons (car para_body) '())
+                                    (cons (evop args e2) '()))
+                              (cons (car para_body) (evop args e2)))
+                          e2)))))
 
 (define evop
-  (macro l_env e
-         (if (null? (eval (car l_env) e)) '()
-             (cons (eval (car (eval (car l_env) e))
-                         (eval (car (cdr l_env)) e))
-                   (evop (cdr (eval (car l_env) e))
-                         (eval (car (cdr l_env)) e))))))
+  (vau l_env e
+       (if (null? (eval (car l_env) e)) '()
+           (cons (eval (car (eval (car l_env) e))
+                       (eval (car (cdr l_env)) e))
+                 (evop (cdr (eval (car l_env) e))
+                       (eval (car (cdr l_env)) e))))))
 
 (define apply
-  (macro f_a e
-         (eval (cons (car f_a) (evop (eval (car (cdr f_a)) e) e)) e)))
+  (vau f_a e
+       (eval (cons (car f_a) (evop (eval (car (cdr f_a)) e) e)) e)))
 
 (define first car)
 (define caar (lambda (x) (car (car x))))
@@ -76,25 +76,25 @@
         (cons (f (car l)) (map f (cdr l))))))
 
 (define let
-  (macro l e
-         (eval (cons (list 'lambda
-                           (map first (car l))
-                           (car (cdr l)))
-                     (map second (car l)))
-               e)))
+  (vau l e
+       (eval (cons (list 'lambda
+                         (map first (car l))
+                         (car (cdr l)))
+                   (map second (car l)))
+             e)))
 
 (define not
   (lambda (b) (if b #f #t)))
 
 (define or
-  (macro a_b e
-         (let ((a (eval (car a_b) e)))
-              (if a a (eval (cadr a_b) e)))))
+  (vau a_b e
+       (let ((a (eval (car a_b) e)))
+            (if a a (eval (cadr a_b) e)))))
 
 (define and
-  (macro a_b e
-         (let ((a (eval (car a_b) e)))
-              (if (not a) #f (eval (cadr a_b) e)))))
+  (vau a_b e
+       (let ((a (eval (car a_b) e)))
+            (if (not a) #f (eval (cadr a_b) e)))))
 
 (define else #t)
 
@@ -104,8 +104,8 @@
         (list 'if (car (car l)) (car (cdr (car l))) (cond2if (cdr l))))))
 
 (define cond
-  (macro conds e
-         (eval (cond2if conds) e)))
+  (vau conds e
+       (eval (cond2if conds) e)))
 
 (define equal?
   (lambda (a b)

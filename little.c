@@ -348,7 +348,7 @@ Cell eval(Cell exp, Cell env) {
            exp = car(cdr(cdr(exp)));
         }
         return eval(exp, env);
-    } else if (is_tagged(exp, atom("macro"))) {
+    } else if (is_tagged(exp, atom("vau"))) {
         return procedure(exp, env);
     } else if (is_pair(exp)) {
         Cell proc = eval(car(exp), env);
