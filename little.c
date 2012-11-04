@@ -156,7 +156,6 @@ void write(FILE *out, Cell o) {
 char is_delimiter(int c) {
     return isspace(c) || c == EOF
                       || c == '(' || c == ')'
-                      || c == '[' || c == ']'
                       || c == ';';
 }
 
@@ -232,6 +231,22 @@ Cell read(FILE *in) {
         return cons(atom("quote"), cons(read(in), null));
     } else if (c == EOF) {
         return atom("#<void>");
+    } else if (c == '"') {
+        c = getc(in);
+        a = atom("");
+        i = 0;
+        while (c != '"') {
+            if (c == '\\') {
+                c = getc(in);
+                c = c == 'n' ? '\n' : c;
+            }
+            if (i < 15) {
+                a->atom[i++] = c;
+            }
+            c = getc(in);
+        }
+        a->atom[i] = '\0';
+        return cons(atom("quote"), cons(a, null));
     } else {
         a = atom("");
         i = 0;
