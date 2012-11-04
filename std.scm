@@ -140,4 +140,8 @@
           ((f? (car l)) #t)
           (else (any? f? (cdr l))))))
 
-(define print (lambda args (begin (map write args) #<void>)))
+(define print
+  (lambda args
+    (begin (map (lambda (a) (begin (write a) (write " "))) args)
+           (write "\n")
+           #<void>)))

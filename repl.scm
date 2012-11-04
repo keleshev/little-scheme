@@ -3,11 +3,10 @@
 (define repl
   (lambda a
     (begin
-      (print 'little> space)
+      (write "little> ")
       (let ((r (read)))
            (let ((e (eval r env)))
-                (begin (print '=> space e))))
-      (print newline)
+                (print "=>" e)))
       (repl))))
 
 (repl)

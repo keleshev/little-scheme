@@ -384,8 +384,6 @@ Cell make_env(void) {
     define(atom("eval"),  primitive(eval_primitive), e);
     define(atom("read"),  primitive(read_primitive), e);
     define(atom("write"),  primitive(write_primitive), e);
-    define(atom("newline"),  atom("\n"), e);
-    define(atom("space"),  atom(" "), e);
     return e;
 }
 
