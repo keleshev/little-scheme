@@ -1,3 +1,20 @@
+(define cons
+  (vau car_cdr e (make 'Pair
+                       (eval (car car_cdr) e)
+                       (eval (car (cdr car_cdr)) e))))
+
+(define atom?
+  (vau a e (eq? (type (eval (car a) e)) '())))
+
+(define pair?
+  (vau a e (eq? (type (eval (car a) e)) 'Pair)))
+
+(define primitive?
+  (vau a e (eq? (type (eval (car a) e)) 'Prim)))
+
+(define procedure?
+  (vau a e (eq? (type (eval (car a) e)) 'Proc)))
+
 (define quote
   (vau a e (car a)))
 
@@ -141,27 +158,28 @@
           (else (any? f? (cdr l))))))
 
 (define put write)
-(define pair? (lambda (a) #t))
 
 (define w-pair
   (lambda (p)
     (begin (w (car p))
-           (cond ((null? (cdr p)) #<void>)
+           (cond ((null? (cdr p)) 'ok)
                  ((pair? (cdr p)) (begin (put " ")
-                                         (w-pair (cdr p))
-                                         #<void>))))))
-;                (else (begin (put " . ") (w (cdr p))))))))
+                                         (w-pair (cdr p))))
+                 (else (begin (put " . ") (w (cdr p)))))
+           #<void>)))
 
 (define w
   (lambda (o)
-    (cond ((null? o) (put "()"))
-          ((and (atom? o) (eq? o #<void>)) #<void>)
-          ((atom? o) (put o))
-          ((pair? o) (begin (put "(") (w-pair o) (put ")") #<void>)))))
-;         ((pair? o) (begin (put "(") (w-pair o) (put ")")))
-;         ((primitive? o) (put "#<primitive>"))
-;         ((procedure? o) (put "#<procedure>"))
-;         (else "#<wtf?>"))))
+    (begin
+      (cond ((null? o) (put "()"))
+            ((and (atom? o) (eq? o #<void>)) #<void>)
+            ((atom? o) (put o))
+            ((pair? o) (begin (put "(") (w-pair o) (put ")")))
+            ((primitive? o) (put "#<primitive>"))
+            ((procedure? o) (put "#<procedure>"))
+            (else (put "#<wtf?>")))
+      #<void>)))
+
 
 (define print
   (lambda args

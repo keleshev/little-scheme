@@ -3,11 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 
-typedef enum {Atom, Pair, Primitive, Procedure} Type;
-
 typedef struct Cell *Cell;
 struct Cell {
-    Type type;
+    Cell type;
 
     // Union is appropriate for the items below,
     // but skipped for simplicity.
@@ -22,28 +20,41 @@ struct Cell {
 
 Cell null;
 
+int is_eq(Cell o1, Cell o2) {
+    if (o1 == null && o2 == null) {
+        return 1;
+    } else if (o1 == null) {
+        return 0;
+    } else if (o2 == null) {
+        return 0;
+    } else {
+        return strcmp(o1->atom, o2->atom) == 0;
+    }
+}
+//#define is_eq(o1, o2)   (strcmp((o1)->atom, (o2)->atom) == 0)
 #define car(o)          ((o)->car)
 #define cdr(o)          ((o)->cdr)
+#define type(o)         ((o)->type)
 #define set_car(o, val) ((o)->car = val)
 #define set_cdr(o, val) ((o)->cdr = val)
-#define is_atom(o)      ((o)->type == Atom)
+#define is_atom(o)      ((o)->type == null)
 #define is_null(o)      ((o) == null)
-#define is_pair(o)      ((o)->type == Pair)
-#define is_primitive(o) ((o)->type == Primitive)
-#define is_procedure(o) ((o)->type == Procedure)
-#define is_eq(o1, o2)   (strcmp((o1)->atom, (o2)->atom) == 0)
-#define Cell_new()    malloc(sizeof(struct Cell))
+#define is_pair(o)      (is_eq(type((o)), atom("Pair")))
+#define is_primitive(o) (is_eq(type((o)), atom("Prim")))
+#define is_procedure(o) (is_eq(type((o)), atom("Proc")))
+#define Cell_new()      malloc(sizeof(struct Cell))
+
 
 Cell atom(char *s) {
     Cell o = Cell_new();
-    o->type = Atom;
+    o->type = null;
     strcpy(o->atom, s);
     return o;
 }
 
-#define cons(car, cdr)         make(Pair, car, cdr)
-#define procedure(lambda, env) make(Procedure, lambda, env)
-Cell make(Type type, Cell car, Cell cdr) {
+#define cons(car, cdr)         make(atom("Pair"), car, cdr)
+#define procedure(lambda, env) make(atom("Proc"), lambda, env)
+Cell make(Cell type, Cell car, Cell cdr) {
     Cell o = Cell_new();
     o->type = type;
     o->car = car;
@@ -53,7 +64,7 @@ Cell make(Type type, Cell car, Cell cdr) {
 
 Cell primitive(Cell (*p)(Cell arguments)) {
     Cell o = Cell_new();
-    o->type = Primitive;
+    o->type = atom("Prim");
     o->primitive = p;
     return o;
 }
@@ -67,12 +78,22 @@ Cell cons_primitive(Cell arguments) {
     return cons(car(arguments), car(cdr(arguments)));
 }
 
+Cell make_primitive(Cell arguments) {
+    return make(car(arguments),
+                car(cdr(arguments)),
+                car(cdr(cdr(arguments))));
+}
+
 Cell car_primitive(Cell arguments) {
     return car(car(arguments));
 }
 
 Cell cdr_primitive(Cell arguments) {
     return cdr(car(arguments));
+}
+
+Cell type_primitive(Cell arguments) {
+    return type(car(arguments));
 }
 
 Cell set_car_primitive(Cell arguments) {
@@ -371,12 +392,12 @@ Cell eval(Cell exp, Cell env) {
 Cell make_env(void) {
     //Cell e = cons(cons(cons(atom("pi"), atom("3")), null), null);
     Cell e = extend_env(null, null, null);
-    define(atom("cons"),  primitive(cons_primitive), e);
+    define(atom("make"),  primitive(make_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
+    define(atom("type"),  primitive(type_primitive), e);
     define(atom("set-car!"),   primitive(set_car_primitive), e);
     define(atom("set-cdr!"),   primitive(set_cdr_primitive), e);
-    define(atom("atom?"), primitive(is_atom_primitive), e);
     define(atom("null?"), primitive(is_null_primitive), e);
     define(atom("eq?"),   primitive(is_eq_primitive), e);
     define(atom("add1"),  primitive(add1_primitive), e);
@@ -389,7 +410,7 @@ Cell make_env(void) {
 
 int main(int argc, char *argv[]) {
     Cell env = make_env();
-
+    //write(stdout, make(atom("Pair"), atom("a"), atom("b")));
     for (int i = 1; i < argc; i++) {
         FILE* file = fopen(argv[i], "r");
         while (peek(file) != EOF) {
