@@ -1,5 +1,5 @@
 (define cons
-  (vau car_cdr e (make 'Pair
+  (vau car_cdr e (make #<pair>
                        (eval (car car_cdr) e)
                        (eval (car (cdr car_cdr)) e))))
 
@@ -7,13 +7,13 @@
   (vau a e (eq? (type (eval (car a) e)) '())))
 
 (define pair?
-  (vau a e (eq? (type (eval (car a) e)) 'Pair)))
+  (vau a e (eq? (type (eval (car a) e)) #<pair>)))
 
 (define primitive?
-  (vau a e (eq? (type (eval (car a) e)) 'Prim)))
+  (vau a e (eq? (type (eval (car a) e)) #<primitive>)))
 
 (define procedure?
-  (vau a e (eq? (type (eval (car a) e)) 'Proc)))
+  (vau a e (eq? (type (eval (car a) e)) #<procedure>)))
 
 (define quote
   (vau a e (car a)))
@@ -157,8 +157,6 @@
           ((f? (car l)) #t)
           (else (any? f? (cdr l))))))
 
-;(define put write)
-
 (define write-pair
   (lambda (p)
     (begin (write (car p))
@@ -175,11 +173,8 @@
             ((and (atom? o) (eq? o #<void>)) #<void>)
             ((atom? o) (put o))
             ((pair? o) (begin (put "(") (write-pair o) (put ")")))
-            ((primitive? o) (put "#<primitive>"))
-            ((procedure? o) (put "#<procedure>"))
-            (else (put "#<wtf?>")))
+            (else (put (type o))))
       #<void>)))
-
 
 (define print
   (lambda args

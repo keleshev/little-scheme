@@ -31,9 +31,9 @@ int is_eq(Cell o1, Cell o2) {
 #define set_cdr(o, val) ((o)->cdr = val)
 #define is_atom(o)      ((o)->type == null)
 #define is_null(o)      ((o) == null)
-#define is_pair(o)      (is_eq(type((o)), atom("Pair")))
-#define is_primitive(o) (is_eq(type((o)), atom("Prim")))
-#define is_procedure(o) (is_eq(type((o)), atom("Proc")))
+#define is_pair(o)      (is_eq(type((o)), atom("#<pair>")))
+#define is_primitive(o) (is_eq(type((o)), atom("#<primitive>")))
+#define is_procedure(o) (is_eq(type((o)), atom("#<procedure>")))
 #define Cell_new()      malloc(sizeof(struct Cell))
 
 
@@ -44,8 +44,8 @@ Cell atom(char *s) {
     return o;
 }
 
-#define cons(car, cdr)         make(atom("Pair"), car, cdr)
-#define procedure(lambda, env) make(atom("Proc"), lambda, env)
+#define cons(car, cdr)         make(atom("#<pair>"), car, cdr)
+#define procedure(lambda, env) make(atom("#<procedure>"), lambda, env)
 Cell make(Cell type, Cell car, Cell cdr) {
     Cell o = Cell_new();
     o->type = type;
@@ -56,7 +56,7 @@ Cell make(Cell type, Cell car, Cell cdr) {
 
 Cell primitive(Cell (*p)(Cell arguments)) {
     Cell o = Cell_new();
-    o->type = atom("Prim");
+    o->type = atom("#<primitive>");
     o->primitive = p;
     return o;
 }
