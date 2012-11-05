@@ -157,24 +157,24 @@
           ((f? (car l)) #t)
           (else (any? f? (cdr l))))))
 
-(define put write)
+;(define put write)
 
-(define w-pair
+(define write-pair
   (lambda (p)
-    (begin (w (car p))
+    (begin (write (car p))
            (cond ((null? (cdr p)) 'ok)
                  ((pair? (cdr p)) (begin (put " ")
-                                         (w-pair (cdr p))))
-                 (else (begin (put " . ") (w (cdr p)))))
+                                         (write-pair (cdr p))))
+                 (else (begin (put " . ") (write (cdr p)))))
            #<void>)))
 
-(define w
+(define write
   (lambda (o)
     (begin
       (cond ((null? o) (put "()"))
             ((and (atom? o) (eq? o #<void>)) #<void>)
             ((atom? o) (put o))
-            ((pair? o) (begin (put "(") (w-pair o) (put ")")))
+            ((pair? o) (begin (put "(") (write-pair o) (put ")")))
             ((primitive? o) (put "#<primitive>"))
             ((procedure? o) (put "#<procedure>"))
             (else (put "#<wtf?>")))

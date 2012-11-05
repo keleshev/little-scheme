@@ -135,43 +135,9 @@ Cell read_primitive(Cell arguments) {
     return read(stdin);
 }
 
-void write(FILE *out, Cell o);
-Cell write_primitive(Cell arguments) {
-    write(stdout, car(arguments));
+Cell put_primitive(Cell arguments) {
+    fputs(car(arguments)->atom, stdout);
     return car(arguments);
-}
-
-void write_pair(FILE *out, Cell pair) {
-    write(out, car(pair));
-    if (is_null(cdr(pair))) {
-        return;
-    } else if (is_pair(cdr(pair))) {
-        fputs(" ", out);
-        write_pair(out, cdr(pair));
-    } else {
-        fputs(" . ", out);
-        write(out, cdr(pair));
-    }
-}
-
-void write(FILE *out, Cell o) {
-    if (is_null(o)) {
-        fputs("()", out);
-    } else if (is_atom(o) && is_eq(o, atom("#<void>"))) {
-    } else if (is_atom(o)) {
-        fputs(o->atom, out);
-    } else if (is_pair(o)) {
-        fputs("(", out);
-        write_pair(out, o);
-        fputs(")", out);
-    } else if (is_primitive(o)) {
-        fputs("#<primitive>", out);
-    } else if (is_procedure(o)) {
-        //fputs("#<procedure>", out);
-        write(out, o->car);
-    } else {
-        fputs("#<wtf?>", out);
-    }
 }
 
 char is_delimiter(int c) {
@@ -384,8 +350,7 @@ Cell eval(Cell exp, Cell env) {
             return eval(body, extend_env(para, args, cdr(proc)));
         }
     }
-    write(stderr, exp);
-    fprintf(stderr, ": eval illegal state\n");
+    fprintf(stderr, "eval illegal state\n");
     return atom("#<void>");
 }
 
@@ -404,13 +369,13 @@ Cell make_env(void) {
     define(atom("sub1"),  primitive(sub1_primitive), e);
     define(atom("eval"),  primitive(eval_primitive), e);
     define(atom("read"),  primitive(read_primitive), e);
-    define(atom("write"),  primitive(write_primitive), e);
+    define(atom("put"),  primitive(put_primitive), e);
     return e;
 }
 
 int main(int argc, char *argv[]) {
     Cell env = make_env();
-    //write(stdout, make(atom("Pair"), atom("a"), atom("b")));
+
     for (int i = 1; i < argc; i++) {
         FILE* file = fopen(argv[i], "r");
         while (peek(file) != EOF) {
