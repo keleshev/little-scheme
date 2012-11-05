@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
         FILE* file = fopen(argv[i], "r");
         while (peek(file) != EOF) {
-            write(stdout, eval(read(file), env));
+            eval(read(file), env);
         }
     }
 }

@@ -140,6 +140,29 @@
           ((f? (car l)) #t)
           (else (any? f? (cdr l))))))
 
+(define put write)
+(define pair? (lambda (a) #t))
+
+(define w-pair
+  (lambda (p)
+    (begin (w (car p))
+           (cond ((null? (cdr p)) #<void>)
+                 ((pair? (cdr p)) (begin (put " ")
+                                         (w-pair (cdr p))
+                                         #<void>))))))
+;                (else (begin (put " . ") (w (cdr p))))))))
+
+(define w
+  (lambda (o)
+    (cond ((null? o) (put "()"))
+          ((and (atom? o) (eq? o #<void>)) #<void>)
+          ((atom? o) (put o))
+          ((pair? o) (begin (put "(") (w-pair o) (put ")") #<void>)))))
+;         ((pair? o) (begin (put "(") (w-pair o) (put ")")))
+;         ((primitive? o) (put "#<primitive>"))
+;         ((procedure? o) (put "#<procedure>"))
+;         (else "#<wtf?>"))))
+
 (define print
   (lambda args
     (begin (map (lambda (a) (begin (write a) (write " "))) args)
