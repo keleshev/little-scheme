@@ -4,17 +4,11 @@
 #include <ctype.h>
 
 typedef struct Cell *Cell;
-struct Cell {
-    Cell type;
-
-    // Union is appropriate for the items below,
-    // but skipped for simplicity.
-
+struct Cell { // union in mind
     Cell car;
     Cell cdr;
-
+    Cell type;
     char atom[16];
-
     Cell (*primitive)(Cell arguments);
 };
 
@@ -23,15 +17,13 @@ Cell null;
 int is_eq(Cell o1, Cell o2) {
     if (o1 == null && o2 == null) {
         return 1;
-    } else if (o1 == null) {
-        return 0;
-    } else if (o2 == null) {
+    } else if (o1 == null || o2 == null) {
         return 0;
     } else {
         return strcmp(o1->atom, o2->atom) == 0;
     }
 }
-//#define is_eq(o1, o2)   (strcmp((o1)->atom, (o2)->atom) == 0)
+
 #define car(o)          ((o)->car)
 #define cdr(o)          ((o)->cdr)
 #define type(o)         ((o)->type)
@@ -74,10 +66,6 @@ Cell eval_primitive(Cell arguments) {
     return eval(car(arguments), car(cdr(arguments)));
 }
 
-Cell cons_primitive(Cell arguments) {
-    return cons(car(arguments), car(cdr(arguments)));
-}
-
 Cell make_primitive(Cell arguments) {
     return make(car(arguments),
                 car(cdr(arguments)),
@@ -104,10 +92,6 @@ Cell set_car_primitive(Cell arguments) {
 Cell set_cdr_primitive(Cell arguments) {
     set_cdr(car(arguments), car(cdr(arguments)));
     return atom("#<void>");
-}
-
-Cell is_atom_primitive(Cell arguments) {
-    return is_atom(car(arguments)) ? atom("#t") : atom("#f");
 }
 
 Cell is_null_primitive(Cell arguments) {
@@ -176,7 +160,7 @@ Cell read_pair(FILE *in) {
 
     skip_space(in);
     c = getc(in);
-    if (c == ')' || c == ']') {
+    if (c == ')') {
         return null;
     }
     ungetc(c, in);
@@ -192,7 +176,7 @@ Cell read_pair(FILE *in) {
         cdr_obj = read(in);
         skip_space(in);
         c = getc(in);
-        if (c != ')' && c != ']') {
+        if (c != ')') {
             fprintf(stderr, "missing right paren\n");
             exit(1);
         }
@@ -355,8 +339,8 @@ Cell eval(Cell exp, Cell env) {
 }
 
 Cell make_env(void) {
-    //Cell e = cons(cons(cons(atom("pi"), atom("3")), null), null);
     Cell e = extend_env(null, null, null);
+
     define(atom("make"),  primitive(make_primitive), e);
     define(atom("car"),   primitive(car_primitive), e);
     define(atom("cdr"),   primitive(cdr_primitive), e);
