@@ -3,10 +3,8 @@
 (define repl
   (lambda a
     (begin
-      (write "little> ")
-      (let ((r (read)))
-           (let ((e (eval r env)))
-                (print "=>" e)))
+      (put "little> ")
+      (print "=>" (eval (read) env))
       (repl))))
 
 (repl)
