@@ -29,7 +29,7 @@
                               (cons (cons (car para_body) '())
                                     (cons (evop args e2) '()))
                               (cons (car para_body) (evop args e2)))
-                          e2)))))
+                          e)))))
 
 (define evop
   (vau l_env e
